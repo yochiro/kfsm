@@ -1,0 +1,14 @@
+apply plugin: 'com.android.library'
+apply from: new File(rootProject.baseBuildScriptPath, 'base_build.gradle')
+
+android {
+    buildTypes {
+        debug {
+        }
+        release {
+            minifyEnabled false
+            useProguard false
+            consumerProguardFiles project.file('proguard-rules.pro')
+        }
+    }
+}

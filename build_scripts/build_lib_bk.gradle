@@ -1,0 +1,5 @@
+apply from: rootProject.libModuleBuildScriptFile
+apply from: rootProject.butterKnifeBuildScriptFile
+apply plugin: 'com.jakewharton.butterknife'
+
+

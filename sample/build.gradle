@@ -1,0 +1,65 @@
+import dd.AndroidCompileOptions
+import dd.Libs
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+
+apply from: rootProject.butterKnifeBuildScriptFile
+
+android {
+    compileSdkVersion AndroidCompileOptions.compileSdkVersion
+
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'LICENSE.txt'
+    }
+
+    dexOptions {
+        preDexLibraries true
+        javaMaxHeapSize "2g"
+    }
+
+    defaultConfig {
+        minSdkVersion AndroidCompileOptions.minSdkVersion
+        targetSdkVersion AndroidCompileOptions.targetSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility AndroidCompileOptions.javaVersion
+        targetCompatibility AndroidCompileOptions.javaVersion
+    }
+
+    lintOptions {
+        // Option details
+        // http://tools.android.com/tech-docs/new-build-system/user-guide#TOC-Lint-support
+        warning 'InvalidPackage', 'NewApi', 'MissingRegistered', 'AppLinksAutoVerifyError'
+        checkAllWarnings true
+        checkReleaseBuilds true
+        checkDependencies = true
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".dbg"
+            jniDebuggable true
+            minifyEnabled true
+            useProguard false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            useProguard true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation Libs.kotlin
+    implementation Libs.threetenabp
+}

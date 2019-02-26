@@ -1,0 +1,40 @@
+# Mac OS X
+*.DS_Store
+
+# built application files
+*.apk
+*.ap_
+
+# files for the dex VM
+*.dex
+
+# Java class files
+*.class
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+.gradle
+/local.properties
+# Android Studio
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/gradle.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+.settings
+.gradle
+/*/local.properties
+/*/out
+**/build
+/*/*/production
+*.iml
+*.ipr
+*~
+*.swp
+captures
+.externalNativeBuild
+

@@ -1,0 +1,54 @@
+import dd.AndroidCompileOptions
+import dd.Libs
+
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+
+android {
+    compileSdkVersion AndroidCompileOptions.compileSdkVersion
+
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'LICENSE.txt'
+    }
+
+    defaultConfig {
+        minSdkVersion AndroidCompileOptions.minSdkVersion
+        targetSdkVersion AndroidCompileOptions.targetSdkVersion
+
+        javaCompileOptions {
+            annotationProcessorOptions.includeCompileClasspath = true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility AndroidCompileOptions.javaVersion
+        targetCompatibility AndroidCompileOptions.javaVersion
+    }
+
+    lintOptions {
+        // Option details
+        // http://tools.android.com/tech-docs/new-build-system/user-guide#TOC-Lint-support
+        // RequiredSize : width/height defined in style for change_email layout triggering error
+        warning 'InvalidPackage', 'NewApi', 'MissingRegistered', 'AppLinksAutoVerifyError', 'RequiredSize'
+        disable 'UnsupportedChromeOsHardware', 'PermissionImpliesUnsupportedChromeOsHardware'
+        checkAllWarnings true
+        checkReleaseBuilds true
+    }
+
+    testOptions {
+        unitTests {
+            all {
+                jvmArgs '-noverify'
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation Libs.kotlin
+}

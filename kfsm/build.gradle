@@ -1,0 +1,30 @@
+import dd.Libs
+import dd.TestingLibs
+
+apply from: rootProject.publishBuildScriptFile
+apply from: rootProject.libModuleBuildScriptFile
+
+
+android.testOptions {
+    unitTests {
+        // Fixes android.content.res.Resources$NotFoundException : integer/google_play_services_version
+        includeAndroidResources true
+        all {
+            jvmArgs '-noverify'
+        }
+    }
+}
+
+
+dependencies {
+    implementation Libs.kotlin
+    implementation Libs.threetenabp
+    implementation Libs.Kotlin.coroutinesCore
+
+    testImplementation Libs.kotlin
+    testImplementation Libs.threetenabp
+    testImplementation Libs.Kotlin.coroutinesCore
+    testImplementation TestingLibs.junit
+    testImplementation TestingLibs.truth
+    testImplementation TestingLibs.robolectric
+}

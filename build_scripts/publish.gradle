@@ -1,0 +1,33 @@
+import dd.ArtifactInfo
+import dd.Builds
+
+apply plugin: 'com.novoda.bintray-release'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath Builds.novodaGradlePlugin
+    }
+}
+
+publish {
+    def groupProjectID = ArtifactInfo.groupProjectID
+    def artifactProjectID = ArtifactInfo.artifactProjectID
+    def publishVersionID = ArtifactInfo.publishVersionID
+    def description = ArtifactInfo.description
+    def websiteURL = ArtifactInfo.websiteURL
+    def bintrayUserOrg = ArtifactInfo.bintrayUserOrg
+    def bintrayRepo = ArtifactInfo.bintrayRepo
+
+    userOrg = bintrayUserOrg
+    repoName = bintrayRepo
+    groupId = groupProjectID
+    artifactId = artifactProjectID
+    publishVersion = publishVersionID
+    desc = description
+    website = websiteURL
+    bintrayUser = project.getProperty("bintray.user")
+    bintrayKey = project.getProperty("bintray.apikey")
+}
