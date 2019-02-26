@@ -1,0 +1,13 @@
+import config.ArtifactInfo
+
+apply from: rootProject.file("build_scripts/base_publish.gradle")
+
+publish {
+    def artifactProjectID = ArtifactInfo.artifactProjectID
+    def publishVersionID = ArtifactInfo.publishVersionID
+    def description = ArtifactInfo.description
+
+    artifactId = artifactProjectID
+    publishVersion = publishVersionID
+    desc = description
+}
