@@ -2,9 +2,12 @@ package org.ymkm.android.kfsm
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -22,6 +25,10 @@ open class DummyRunner(private val context: TestContext? = null) : FSMRunner<Tes
         get() = TODO("not implemented")
     override val fsm: FSM<TestContext, Int>
         get() = TODO("not implemented")
+
+    override fun feed(input: Int): Boolean {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun feedAsync(input: Int): Deferred<Boolean> {
         TODO("not implemented")
@@ -707,10 +714,9 @@ class KFSMTest {
                 }
             }
         }
-        runBlocking {
-            assertThat(kfsm.start(TestContext()).feedAsync(0).await()).isTrue()
-            assertThat(actionCalled).isTrue()
-        }
+
+        assertThat(kfsm.start(TestContext()).feed(0)).isTrue()
+        assertThat(actionCalled).isTrue()
 
         actionCalled = false
         val kfsm2 = kfsm<TestContext, Int> {
@@ -731,10 +737,8 @@ class KFSMTest {
                 }
             }
         }
-        runBlocking {
-            assertThat(kfsm2.start(TestContext()).feedAsync(0).await()).isTrue()
-            assertThat(actionCalled).isTrue()
-        }
+        assertThat(kfsm2.start(TestContext()).feed(0)).isTrue()
+        assertThat(actionCalled).isTrue()
     }
 
     @Test
@@ -779,6 +783,68 @@ class KFSMTest {
     }
 
     @Test
+    fun shouldFeedSyncBeWaitingOnMainThreadWhenFedWithValue() {
+        var conditionCalled = false
+        var timeSpent = 0L
+        val sleepTime = 200L
+        val now = System.currentTimeMillis()
+        val kfsm = kfsm<TestContext, Int> {
+            initialState {
+                id = 1
+                transitions {
+                    transition {
+                        to = 1
+                        action {
+                            // Simulate some processing
+                            conditionCalled = true
+                            Thread.sleep(sleepTime)
+                            timeSpent = System.currentTimeMillis() - now
+                        }
+                    }
+                }
+            }
+        }
+        val runner = kfsm.start(TestContext())
+        runner.feed(1)
+        assertThat(timeSpent).isAtLeast(sleepTime)
+        assertThat(conditionCalled).isTrue()
+    }
+
+    @Test
+    fun shouldFeedASyncBeReturningImmediatelyWhenFedWithValue() {
+        var conditionCalled = false
+        var timeSpent = 0L
+        val sleepTime = 200L
+        val now = System.currentTimeMillis()
+        val kfsm = kfsm<TestContext, Int> {
+            initialState {
+                id = 1
+                transitions {
+                    transition {
+                        to = 1
+                        action {
+                            // Simulate some processing
+                            Thread.sleep(sleepTime)
+                            conditionCalled = true
+                            timeSpent = System.currentTimeMillis() - now
+                        }
+                    }
+                }
+            }
+        }
+        val runner = kfsm.start(TestContext())
+        runBlocking {
+            val j = runner.feedAsync(1)
+            // Shouldn't be updated yet
+            assertThat(timeSpent).isEqualTo(0L)
+            assertThat(conditionCalled).isFalse()
+            j.join()
+            assertThat(timeSpent).isAtLeast(sleepTime)
+            assertThat(conditionCalled).isTrue()
+        }
+    }
+
+    @Test
     fun testShouldTransitionWithMoreThanOneMatchingPredicateFailAtRuntime() {
         var conditionCalled = false
         val kfsm = kfsm<TestContext, Int> {
@@ -804,9 +870,7 @@ class KFSMTest {
         val thrownError = assertThrows(
             IllegalStateException::class.java
         ) {
-            runBlocking {
-                runner.feedAsync(0).await()
-            }
+            runner.feed(0)
         }
         assertThat(thrownError.message).isEqualTo("Multiple transition candidates found for input 0 at State(id=1, label=-, isSource=true, isSink=false)")
         assertThat(runner.started).isFalse()
@@ -831,9 +895,7 @@ class KFSMTest {
         val thrownError = assertThrows(
             IllegalStateException::class.java
         ) {
-            runBlocking {
-                runner.feedAsync(0).await()
-            }
+            runner.feed(0)
         }
         assertThat(thrownError.message).isEqualTo("No transition candidates found for input 0 at State(id=1, label=-, isSource=true, isSink=false)")
         assertThat(runner.started).isFalse()
@@ -914,7 +976,7 @@ class KFSMTest {
         val thrownError = assertThrows(
             IllegalStateException::class.java
         ) {
-            runner.feedAsync(1)
+            runner.feed(1)
         }
         // Ensure we can still access currentContext and currentState even after the runner is stopped
         with(runner.currentState) {
@@ -923,7 +985,7 @@ class KFSMTest {
             assertThat(isSource).isTrue()
         }
         assertThat(runner.currentContext.value).isEqualTo(0)
-        assertThat(thrownError.message).isEqualTo("The current runner is not running; cannot feedAsync 1")
+        assertThat(thrownError.message).isEqualTo("The current runner is not running; cannot feed 1")
     }
 
     @Test
@@ -947,15 +1009,11 @@ class KFSMTest {
             }
         }
         val runner = kfsm.start(FinalStateTestContext(0))
-        runBlocking {
-            runner.feedAsync(1).await()
-        }
+        runner.feed(1)
         val thrownError = assertThrows(
             IllegalStateException::class.java
         ) {
-            runBlocking {
-                runner.feedAsync(1).await()
-            }
+            runner.feed(1)
         }
         // Ensure we can still access currentContext and currentState even after the runner is stopped
         with(runner.currentState) {
@@ -964,6 +1022,6 @@ class KFSMTest {
             assertThat(isSource).isFalse()
         }
         assertThat(runner.currentContext.value).isEqualTo(99)
-        assertThat(thrownError.message).isEqualTo("The current runner is not running; cannot feedAsync 1")
+        assertThat(thrownError.message).isEqualTo("The current runner is not running; cannot feed 1")
     }
 }

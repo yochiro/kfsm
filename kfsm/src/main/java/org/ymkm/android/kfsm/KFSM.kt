@@ -38,6 +38,7 @@ import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.Comparator
@@ -365,7 +366,7 @@ class KFSM<Context : FSMContext, Input> internal constructor(kFSMBuilder: Builde
     companion object {
         private val TAG = KFSM::class.java.simpleName
         private fun debugLog(msg: String) {
-            if (KFSM.Debug.debug) {
+            if (Debug.debug) {
                 Log.d(TAG, msg)
                 System.out.println(msg)
             }
@@ -471,7 +472,7 @@ class KFSM<Context : FSMContext, Input> internal constructor(kFSMBuilder: Builde
             currentState.onEnter(this@KFSMRunner)
             observer?.onStateEnter(currentState)
 
-            job = GlobalScope.async {
+            job = GlobalScope.launch {
                 var reachedFinalState = false
                 try {
                     while (isActive && !reachedFinalState) {
@@ -500,10 +501,16 @@ class KFSM<Context : FSMContext, Input> internal constructor(kFSMBuilder: Builde
         }
 
         override val coroutineContext: CoroutineContext
-            get() = Dispatchers.Default + job
+            get() = job + Dispatchers.Default
+
+        override fun feed(input: Input): Boolean {
+            return runBlocking {
+                feedAsync(input).await()
+            }
+        }
 
         override fun feedAsync(input: Input): Deferred<Boolean> {
-            check(started) { "The current runner is not running; cannot feedAsync $input" }
+            check(started) { "The current runner is not running; cannot feed $input" }
             return async {
                 feedChannel.send(input to currentContext)
                 val t = resultChannel.receive()
@@ -530,16 +537,13 @@ class KFSM<Context : FSMContext, Input> internal constructor(kFSMBuilder: Builde
 
         override fun stop() {
             runBlocking {
-                val j = async {
-                    try {
-                        feedChannel.close()
-                        resultChannel.close()
-                        job.cancelAndJoin()
-                    } catch (t: Throwable) {
-                        throw t
-                    }
+                try {
+                    feedChannel.close()
+                    resultChannel.close()
+                    job.cancelAndJoin()
+                } catch (t: Throwable) {
+                    throw t
                 }
-                j.await()
             }
         }
 

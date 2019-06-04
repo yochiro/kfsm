@@ -401,6 +401,18 @@ interface FSMRunner<Context : FSMContext, Input> {
     /**
      * Feed some new input to the [FSM]. Transition should occur internally based on the current state.
      *
+     * The processing of the input is performed *synchronously*, so any long processing would block the main thread until it finishes.
+     *
+     * @param input the new input to feed
+     * @return true if process was sucessful, false otherwise.
+     * @throws IllegalStateException if no transition can be taken in the current state based on the specified input
+     * @throws IllegalStateException if more than one transition can be taken as the result of feeding specified input
+     */
+    fun feed(input: Input): Boolean
+
+    /**
+     * Feed some new input to the [FSM]. Transition should occur internally based on the current state.
+     *
      * The processing of the input is performed asynchronously, so the caller may not see the effect of the state change immediately after sending the input.
      *
      * To keep the FSM state consistent, it does not currently handle cancellation.
